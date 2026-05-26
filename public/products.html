@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sản Phẩm - GlowShop</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="/"><i class="fas fa-spa me-2"></i>Glow<span>Shop</span></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="/">Trang chủ</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/products.html">Sản phẩm</a></li>
+      </ul>
+      <ul class="navbar-nav align-items-center">
+        <li class="nav-item">
+          <a class="nav-link position-relative" href="/cart.html">
+            <i class="fas fa-shopping-cart fa-lg"></i>
+            <span class="cart-badge" id="cartCount">0</span>
+          </a>
+        </li>
+        <ul class="navbar-nav" id="navAuth"></ul>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="container py-5">
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+      <li class="breadcrumb-item active">Sản phẩm</li>
+    </ol>
+  </nav>
+
+  <h2 class="section-title mb-4">Tất Cả Sản Phẩm</h2>
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">🔍 Tìm kiếm</label>
+        <input type="text" class="form-control" id="searchInput" placeholder="Tên sản phẩm, thương hiệu...">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">📂 Danh mục</label>
+        <select class="form-select" id="categoryFilter">
+          <option value="">Tất cả danh mục</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">↕️ Sắp xếp</label>
+        <select class="form-select" id="sortFilter">
+          <option value="">Mặc định</option>
+          <option value="newest">Mới nhất</option>
+          <option value="price_asc">Giá tăng dần</option>
+          <option value="price_desc">Giá giảm dần</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-primary w-100" onclick="applyFilter()">Lọc</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <p class="text-muted mb-0" id="resultCount"></p>
+  </div>
+
+  <div class="row g-4" id="productsGrid">
+    <div class="col-12 text-center py-5"><div class="spinner-border" style="color:var(--primary)"></div></div>
+  </div>
+
+  <div class="d-flex justify-content-center mt-4" id="pagination"></div>
+</div>
+
+<footer class="py-4" style="background:var(--dark);color:#ccc">
+  <div class="container text-center">
+    <p class="mb-0">© 2024 GlowShop. All rights reserved.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+<script>
+let currentPage = 1;
+const params = new URLSearchParams(window.location.search);
+
+async function loadCategories() {
+  const res = await fetch('/api/categories');
+  const cats = await res.json();
+  const sel = document.getElementById('categoryFilter');
+  cats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.slug; opt.textContent = c.name;
+    if (params.get('category') === c.slug) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadProducts(page = 1) {
+  const search = document.getElementById('searchInput').value;
+  const category = document.getElementById('categoryFilter').value;
+  const sort = document.getElementById('sortFilter').value;
+  currentPage = page;
+
+  const query = new URLSearchParams({ page, limit: 12 });
+  if (search) query.set('search', search);
+  if (category) query.set('category', category);
+  if (sort) query.set('sort', sort);
+
+  const res = await fetch('/api/products?' + query);
+  const data = await res.json();
+
+  document.getElementById('resultCount').textContent = `Tìm thấy ${data.total} sản phẩm`;
+
+  if (data.products.length === 0) {
+    document.getElementById('productsGrid').innerHTML = `
+      <div class="col-12 empty-state">
+        <i class="fas fa-search"></i>
+        <h5>Không tìm thấy sản phẩm</h5>
+        <p class="text-muted">Thử tìm kiếm với từ khóa khác</p>
+      </div>`;
+  } else {
+    document.getElementById('productsGrid').innerHTML = data.products.map(p => {
+      const price = p.sale_price ? `<span class="price">${fmt(p.sale_price)}</span> <span class="price-original">${fmt(p.price)}</span>` : `<span class="price">${fmt(p.price)}</span>`;
+      const badge = p.sale_price ? `<span class="badge-sale position-absolute top-0 end-0 m-2">-${Math.round((1-p.sale_price/p.price)*100)}%</span>` : '';
+      return `
+        <div class="col-6 col-md-4 col-lg-3">
+          <div class="product-card card h-100">
+            <div class="position-relative">
+              <img src="/images/products/${p.image}" class="card-img-top" alt="${p.name}" onerror="this.src='https://via.placeholder.com/300x220/fce4ec/e91e8c?text=Mỹ+Phẩm'">
+              ${badge}
+            </div>
+            <div class="card-body d-flex flex-column">
+              <p class="brand mb-1">${p.brand||''}</p>
+              <h6 class="card-title flex-grow-1"><a href="/product.html?id=${p.id}" class="text-decoration-none text-dark">${p.name}</a></h6>
+              <div class="mb-2">${price}</div>
+              <button class="btn-cart" onclick="addToCart(${p.id})"><i class="fas fa-cart-plus me-1"></i>Thêm vào giỏ</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // Pagination
+  let pag = '';
+  if (data.pages > 1) {
+    pag = '<nav><ul class="pagination">';
+    for (let i = 1; i <= data.pages; i++) {
+      pag += `<li class="page-item ${i===page?'active':''}"><a class="page-link" href="#" onclick="loadProducts(${i});return false">${i}</a></li>`;
+    }
+    pag += '</ul></nav>';
+  }
+  document.getElementById('pagination').innerHTML = pag;
+}
+
+function applyFilter() { loadProducts(1); }
+
+document.getElementById('searchInput').addEventListener('keypress', e => { if (e.key === 'Enter') applyFilter(); });
+
+// Init
+if (params.get('search')) document.getElementById('searchInput').value = params.get('search');
+if (params.get('sort')) document.getElementById('sortFilter').value = params.get('sort');
+
+loadCategories();
+loadProducts(1);
+</script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thanh Toán - GlowShop</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand" href="/"><i class="fas fa-spa me-2"></i>Glow<span>Shop</span></a>
+    <ul class="navbar-nav ms-auto align-items-center">
+      <li class="nav-item">
+        <a class="nav-link position-relative" href="/cart.html">
+          <i class="fas fa-shopping-cart fa-lg"></i>
+          <span class="cart-badge" id="cartCount">0</span>
+        </a>
+      </li>
+      <ul class="navbar-nav" id="navAuth"></ul>
+    </ul>
+  </div>
+</nav>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="container py-5">
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/">Trang chủ</a></li>
+      <li class="breadcrumb-item"><a href="/cart.html">Giỏ hàng</a></li>
+      <li class="breadcrumb-item active">Thanh toán</li>
+    </ol>
+  </nav>
+  <h2 class="section-title mb-4">Thanh Toán</h2>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="checkout-form">
+        <h5 class="fw-bold mb-4"><i class="fas fa-map-marker-alt me-2" style="color:var(--primary)"></i>Thông tin giao hàng</h5>
+        <form id="checkoutForm">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Họ và tên *</label>
+            <input type="text" class="form-control" id="name" placeholder="Nguyễn Văn A" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Số điện thoại *</label>
+            <input type="tel" class="form-control" id="phone" placeholder="0909 123 456" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Địa chỉ giao hàng *</label>
+            <textarea class="form-control" id="address" rows="3" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" required></textarea>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Ghi chú</label>
+            <textarea class="form-control" id="note" rows="2" placeholder="Ghi chú thêm cho đơn hàng (không bắt buộc)"></textarea>
+          </div>
+
+          <h5 class="fw-bold mb-3"><i class="fas fa-credit-card me-2" style="color:var(--primary)"></i>Phương thức thanh toán</h5>
+          <div class="mb-4">
+            <div class="form-check p-3 border rounded mb-2" style="cursor:pointer">
+              <input class="form-check-input" type="radio" name="payment" id="cod" value="cod" checked>
+              <label class="form-check-label fw-semibold" for="cod">
+                <i class="fas fa-money-bill-wave me-2 text-success"></i>Thanh toán khi nhận hàng (COD)
+              </label>
+            </div>
+            <div class="form-check p-3 border rounded mb-2" style="cursor:pointer">
+              <input class="form-check-input" type="radio" name="payment" id="bank" value="bank">
+              <label class="form-check-label fw-semibold" for="bank">
+                <i class="fas fa-university me-2 text-primary"></i>Chuyển khoản ngân hàng
+              </label>
+            </div>
+            <div class="form-check p-3 border rounded" style="cursor:pointer">
+              <input class="form-check-input" type="radio" name="payment" id="momo" value="momo">
+              <label class="form-check-label fw-semibold" for="momo">
+                <i class="fas fa-mobile-alt me-2" style="color:#ae2070"></i>Ví MoMo
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 btn-lg">
+            <i class="fas fa-check-circle me-2"></i>Đặt hàng ngay
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="order-summary">
+        <h5 class="fw-bold mb-3">Đơn hàng của bạn</h5>
+        <div id="orderItems">
+          <div class="text-center"><div class="spinner-border spinner-border-sm" style="color:var(--primary)"></div></div>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Tạm tính:</span><span id="subtotal">0đ</span>
+        </div>
+        <div class="d-flex justify-content-between mb-2">
+          <span>Phí vận chuyển:</span><span class="text-success fw-semibold">Miễn phí</span>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between fw-bold fs-5">
+          <span>Tổng cộng:</span>
+          <span style="color:var(--primary)" id="total">0đ</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4">
+      <div style="font-size:4rem">🎉</div>
+      <h4 class="fw-bold mt-3" style="color:var(--primary)">Đặt hàng thành công!</h4>
+      <p class="text-muted">Cảm ơn bạn đã mua hàng tại GlowShop.<br>Chúng tôi sẽ liên hệ xác nhận đơn hàng sớm nhất.</p>
+      <p>Mã đơn hàng: <strong id="orderId" style="color:var(--primary)"></strong></p>
+      <div class="d-flex gap-2 justify-content-center mt-3">
+        <a href="/orders.html" class="btn btn-primary">Xem đơn hàng</a>
+        <a href="/" class="btn btn-outline-secondary">Về trang chủ</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/main.js"></script>
+<script>
+async function loadOrderSummary() {
+  const user = await checkAuth();
+  if (!user) { window.location.href = '/login.html?redirect=/checkout.html'; return; }
+
+  const res = await fetch('/api/cart');
+  const items = await res.json();
+  if (items.length === 0) { window.location.href = '/cart.html'; return; }
+
+  let subtotal = 0;
+  document.getElementById('orderItems').innerHTML = items.map(item => {
+    const p = item.product;
+    const price = p.sale_price || p.price;
+    subtotal += price * item.quantity;
+    return `
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <img src="/images/products/${p.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"
+          onerror="this.src='https://via.placeholder.com/50x50/fce4ec/e91e8c?text=SP'">
+        <div class="flex-grow-1">
+          <p class="mb-0 fw-semibold" style="font-size:0.9rem">${p.name}</p>
+          <small class="text-muted">x${item.quantity}</small>
+        </div>
+        <span class="fw-bold">${fmt(price * item.quantity)}</span>
+      </div>`;
+  }).join('');
+
+  document.getElementById('subtotal').textContent = fmt(subtotal);
+  document.getElementById('total').textContent = fmt(subtotal);
+
+  // Pre-fill name
+  if (user) document.getElementById('name').value = user.name || '';
+}
+
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
+
+  const res = await fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: document.getElementById('name').value,
+      phone: document.getElementById('phone').value,
+      address: document.getElementById('address').value,
+      note: document.getElementById('note').value
+    })
+  });
+  const data = await res.json();
+
+  if (data.success) {
+    document.getElementById('orderId').textContent = '#' + data.orderId;
+    document.getElementById('cartCount').textContent = '0';
+    new bootstrap.Modal(document.getElementById('successModal')).show();
+  } else {
+    showToast(data.message || 'Có lỗi xảy ra', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check-circle me-2"></i>Đặt hàng ngay';
+  }
+});
+
+loadOrderSummary();
+</script>
+</body>
+</html>
