@@ -87,8 +87,8 @@ async function loadOrders() {
           ${order.items.map(item => `
             <div class="col-12">
               <div class="d-flex align-items-center gap-3">
-                <img src="/images/products/${item.image}" style="width:60px;height:60px;object-fit:cover;border-radius:8px"
-                  onerror="this.src='https://via.placeholder.com/60x60/fce4ec/e91e8c?text=SP'">
+                <img src="${getImg(item.image)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px"
+                  onerror="this.src='https://placehold.co/60x60/fce4ec/e91e8c?text=SP'">
                 <div class="flex-grow-1">
                   <p class="mb-0 fw-semibold">${item.name}</p>
                   <small class="text-muted">x${item.quantity} × ${fmt(item.price)}</small>

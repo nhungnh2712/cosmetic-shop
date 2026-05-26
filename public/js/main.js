@@ -1,6 +1,12 @@
 // Utility functions
 const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 
+function getImg(image) {
+  if (!image) return 'https://placehold.co/300x220/fce4ec/e91e8c?text=My+Pham';
+  if (image.startsWith('http')) return image;
+  return '/images/products/' + image;
+}
+
 function showToast(msg, type = 'success') {
   const container = document.getElementById('toastContainer');
   if (!container) return;

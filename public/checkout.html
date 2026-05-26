@@ -145,8 +145,8 @@ async function loadOrderSummary() {
     subtotal += price * item.quantity;
     return `
       <div class="d-flex align-items-center gap-2 mb-3">
-        <img src="/images/products/${p.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"
-          onerror="this.src='https://via.placeholder.com/50x50/fce4ec/e91e8c?text=SP'">
+        <img src="${getImg(item.product.image)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"
+          onerror="this.src='https://placehold.co/50x50/fce4ec/e91e8c?text=SP'">
         <div class="flex-grow-1">
           <p class="mb-0 fw-semibold" style="font-size:0.9rem">${p.name}</p>
           <small class="text-muted">x${item.quantity}</small>

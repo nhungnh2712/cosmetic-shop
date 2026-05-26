@@ -163,8 +163,8 @@ function renderTable(products) {
     ? '<tr><td colspan="7" class="text-center py-4 text-muted">Không có sản phẩm</td></tr>'
     : products.map(p => `
       <tr>
-        <td><img src="/images/products/${p.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"
-          onerror="this.src='https://via.placeholder.com/50x50/fce4ec/e91e8c?text=SP'"></td>
+        <td><img src="${p.image && p.image.startsWith('http') ? p.image : '/images/products/' + p.image}" style="width:50px;height:50px;object-fit:cover;border-radius:8px"
+          onerror="this.src='https://placehold.co/50x50/fce4ec/e91e8c?text=SP'"></td>
         <td><strong>${p.name}</strong><br><small class="text-muted">${p.brand||''}</small></td>
         <td>${p.category_name||'-'}</td>
         <td>${fmt(p.price)}</td>
