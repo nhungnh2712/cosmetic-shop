@@ -167,7 +167,6 @@ function copyAccount() {
 
 async function loadOrderSummary() {
   const user = await checkAuth();
-  if (!user) { window.location.href = '/login.html?redirect=/checkout.html'; return; }
 
   const res = await fetch('/api/cart');
   const items = await res.json();
@@ -193,7 +192,7 @@ async function loadOrderSummary() {
   document.getElementById('subtotal').textContent = fmt(subtotal);
   document.getElementById('total').textContent = fmt(subtotal);
 
-  // Pre-fill name
+  // Pre-fill name nếu đã đăng nhập
   if (user) document.getElementById('name').value = user.name || '';
 }
 

@@ -158,7 +158,7 @@ app.delete('/api/cart/:productId', (req, res) => {
 
 // ==================== ORDERS ====================
 
-app.post('/api/orders', requireLogin, (req, res) => {
+app.post('/api/orders', (req, res) => {
   const { name, phone, address, note } = req.body;
   const cart = req.session.cart || [];
   if (cart.length === 0) return res.json({ success: false, message: 'Giỏ hàng trống' });
@@ -172,7 +172,12 @@ app.post('/api/orders', requireLogin, (req, res) => {
   });
 
   const orderId = nextId('orders');
-  const order = { id: orderId, user_id: req.session.user.id, total, status: 'pending', name, phone, address, note: note || '', created_at: new Date().toISOString() };
+  const order = {
+    id: orderId,
+    user_id: req.session.user ? req.session.user.id : null,
+    total, status: 'pending', name, phone, address, note: note || '',
+    created_at: new Date().toISOString()
+  };
   db.get('orders').push(order).write();
 
   items.forEach(i => {
