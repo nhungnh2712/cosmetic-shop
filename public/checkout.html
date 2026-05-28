@@ -62,22 +62,45 @@
           <h5 class="fw-bold mb-3"><i class="fas fa-credit-card me-2" style="color:var(--primary)"></i>Phương thức thanh toán</h5>
           <div class="mb-4">
             <div class="form-check p-3 border rounded mb-2" style="cursor:pointer">
-              <input class="form-check-input" type="radio" name="payment" id="cod" value="cod" checked>
+              <input class="form-check-input" type="radio" name="payment" id="cod" value="cod" checked onchange="onPaymentChange()">
               <label class="form-check-label fw-semibold" for="cod">
                 <i class="fas fa-money-bill-wave me-2 text-success"></i>Thanh toán khi nhận hàng (COD)
               </label>
             </div>
             <div class="form-check p-3 border rounded mb-2" style="cursor:pointer">
-              <input class="form-check-input" type="radio" name="payment" id="bank" value="bank">
+              <input class="form-check-input" type="radio" name="payment" id="bank" value="bank" onchange="onPaymentChange()">
               <label class="form-check-label fw-semibold" for="bank">
                 <i class="fas fa-university me-2 text-primary"></i>Chuyển khoản ngân hàng
               </label>
             </div>
-            <div class="form-check p-3 border rounded" style="cursor:pointer">
-              <input class="form-check-input" type="radio" name="payment" id="momo" value="momo">
-              <label class="form-check-label fw-semibold" for="momo">
-                <i class="fas fa-mobile-alt me-2" style="color:#ae2070"></i>Ví MoMo
-              </label>
+
+            <!-- Thông tin tài khoản ngân hàng - chỉ hiện khi chọn chuyển khoản -->
+            <div id="bankInfo" class="d-none mx-1 mb-2 p-3 rounded" style="background:#f0f7ff;border:1px solid #bfdbfe">
+              <p class="fw-semibold mb-2" style="color:#1d4ed8"><i class="fas fa-info-circle me-2"></i>Thông tin chuyển khoản</p>
+              <table class="table table-sm table-borderless mb-0" style="font-size:0.9rem">
+                <tr>
+                  <td class="text-muted" style="width:130px">Ngân hàng:</td>
+                  <td class="fw-semibold">Vietcombank</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Số tài khoản:</td>
+                  <td class="fw-semibold">
+                    1234567890
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 py-0 px-1" style="font-size:0.75rem" onclick="copyAccount()">
+                      <i class="fas fa-copy"></i> Sao chép
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Chủ tài khoản:</td>
+                  <td class="fw-semibold">GLOWSHOP</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Nội dung CK:</td>
+                  <td class="fw-semibold text-danger">GS + Số điện thoại</td>
+                </tr>
+              </table>
+              <p class="mb-0 mt-2 small text-muted"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Đơn hàng sẽ được xử lý sau khi xác nhận thanh toán.</p>
             </div>
           </div>
 
@@ -130,6 +153,18 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/main.js"></script>
 <script>
+function onPaymentChange() {
+  const bankInfo = document.getElementById('bankInfo');
+  const isBankSelected = document.getElementById('bank').checked;
+  bankInfo.classList.toggle('d-none', !isBankSelected);
+}
+
+function copyAccount() {
+  navigator.clipboard.writeText('1234567890').then(() => {
+    showToast('Đã sao chép số tài khoản', 'info');
+  });
+}
+
 async function loadOrderSummary() {
   const user = await checkAuth();
   if (!user) { window.location.href = '/login.html?redirect=/checkout.html'; return; }

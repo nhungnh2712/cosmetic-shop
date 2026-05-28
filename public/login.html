@@ -84,8 +84,14 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   const data = await res.json();
 
   if (data.success) {
-    const redirect = new URLSearchParams(window.location.search).get('redirect') || '/';
-    window.location.href = redirect;
+    const redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (redirect) {
+      window.location.href = redirect;
+    } else if (data.user.role === 'admin') {
+      window.location.href = '/admin/index.html';
+    } else {
+      window.location.href = '/';
+    }
   } else {
     document.getElementById('errorMsg').textContent = data.message;
     document.getElementById('errorMsg').classList.remove('d-none');
@@ -95,7 +101,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 // Redirect if already logged in
-checkAuth().then(user => { if (user) window.location.href = '/'; });
+checkAuth().then(user => {
+  if (user) {
+    window.location.href = user.role === 'admin' ? '/admin/index.html' : '/';
+  }
+});
 </script>
 </body>
 </html>
