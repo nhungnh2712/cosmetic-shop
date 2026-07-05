@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quản Lý Khách Hàng - GlowShop Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="/css/admin.css" rel="stylesheet">
+</head>
+<body>
+<div class="d-flex">
+  <div class="sidebar">
+    <div class="sidebar-brand"><i class="fas fa-spa me-2"></i>GlowShop Admin</div>
+    <nav class="sidebar-nav">
+      <a href="/admin/index.html" class="nav-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+      <a href="/admin/products.html" class="nav-item"><i class="fas fa-box"></i> Sản phẩm</a>
+      <a href="/admin/orders.html" class="nav-item"><i class="fas fa-shopping-bag"></i> Đơn hàng</a>
+      <a href="/admin/customers.html" class="nav-item active"><i class="fas fa-users"></i> Khách hàng</a>
+      <a href="/" class="nav-item"><i class="fas fa-store"></i> Xem cửa hàng</a>
+      <a href="#" class="nav-item text-danger" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> Đăng xuất</a>
+    </nav>
+  </div>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <h4 class="mb-0">Quản Lý Khách Hàng</h4>
+    </div>
+
+    <div class="p-4">
+      <!-- Filter -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <input type="text" class="form-control" id="searchCustomer" placeholder="🔍 Tìm theo tên, email..." oninput="filterCustomers()">
+            </div>
+            <div class="col-md-3">
+              <select class="form-select" id="statusFilter" onchange="filterCustomers()">
+                <option value="">Tất cả trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="locked">Đã khóa</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Khách hàng</th>
+                  <th>Email</th>
+                  <th>Ngày tham gia</th>
+                  <th>Số đơn hàng</th>
+                  <th>Tổng chi tiêu</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="customersTable">
+                <tr><td colspan="7" class="text-center py-4"><div class="spinner-border" style="color:#e91e8c"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER DETAIL MODAL -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Chi tiết khách hàng</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="customerDetail"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOCK/UNLOCK CONFIRM -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header" id="statusModalHeader">
+        <h5 class="modal-title text-white" id="statusModalTitle">Xác nhận</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="statusModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+        <button class="btn" id="statusConfirmBtn" onclick="confirmStatusChange()">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+let allCustomers = [];
+let pendingStatus = null;
+
+const orderStatusLabel = {
+  pending: '<span class="badge" style="background:#fef3c7;color:#f59e0b;font-size:0.75rem">Chờ xác nhận</span>',
+  processing: '<span class="badge" style="background:#dbeafe;color:#3b82f6;font-size:0.75rem">Đang xử lý</span>',
+  shipped: '<span class="badge" style="background:#ede9fe;color:#8b5cf6;font-size:0.75rem">Đang giao</span>',
+  delivered: '<span class="badge" style="background:#d1fae5;color:#10b981;font-size:0.75rem">Đã giao</span>',
+  cancelled: '<span class="badge" style="background:#fee2e2;color:#ef4444;font-size:0.75rem">Đã hủy</span>'
+};
+
+function accountStatusBadge(status) {
+  return status === 'locked'
+    ? '<span class="badge" style="background:#fee2e2;color:#ef4444">🔒 Đã khóa</span>'
+    : '<span class="badge" style="background:#d1fae5;color:#10b981">✅ Hoạt động</span>';
+}
+
+async function checkAdmin() {
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (!data.user || data.user.role !== 'admin') window.location.href = '/login.html';
+}
+
+async function loadCustomers() {
+  const res = await fetch('/api/admin/customers');
+  allCustomers = await res.json();
+  renderTable(allCustomers);
+}
+
+function renderTable(customers) {
+  document.getElementById('customersTable').innerHTML = customers.length === 0
+    ? '<tr><td colspan="7" class="text-center py-4 text-muted">Không có khách hàng</td></tr>'
+    : customers.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.email}</td>
+        <td>${new Date(c.created_at).toLocaleDateString('vi-VN')}</td>
+        <td>${c.order_count}</td>
+        <td style="color:#e91e8c;font-weight:600">${fmt(c.total_spent)}</td>
+        <td>${accountStatusBadge(c.status)}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="viewCustomer(${c.id})"><i class="fas fa-eye"></i></button>
+          ${c.status === 'locked'
+            ? `<button class="btn btn-sm btn-outline-success" onclick="openStatusChange(${c.id}, 'active')"><i class="fas fa-unlock"></i></button>`
+            : `<button class="btn btn-sm btn-outline-danger" onclick="openStatusChange(${c.id}, 'locked')"><i class="fas fa-lock"></i></button>`}
+        </td>
+      </tr>`).join('');
+}
+
+function filterCustomers() {
+  const q = document.getElementById('searchCustomer').value.toLowerCase();
+  const status = document.getElementById('statusFilter').value;
+  renderTable(allCustomers.filter(c =>
+    (!q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)) &&
+    (!status || c.status === status)
+  ));
+}
+
+async function viewCustomer(id) {
+  const res = await fetch(`/api/admin/customers/${id}`);
+  if (!res.ok) return;
+  const c = await res.json();
+  document.getElementById('customerDetail').innerHTML = `
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <h6 class="fw-bold">Thông tin tài khoản</h6>
+        <p class="mb-1"><strong>Tên:</strong> ${c.name}</p>
+        <p class="mb-1"><strong>Email:</strong> ${c.email}</p>
+        <p class="mb-1"><strong>Ngày tham gia:</strong> ${new Date(c.created_at).toLocaleString('vi-VN')}</p>
+        <p class="mb-1"><strong>Trạng thái:</strong> ${accountStatusBadge(c.status)}</p>
+      </div>
+      <div class="col-md-6">
+        <h6 class="fw-bold">Thống kê mua hàng</h6>
+        <p class="mb-1"><strong>Số đơn hàng:</strong> ${c.orders.length}</p>
+        <p class="mb-1"><strong>Tổng chi tiêu:</strong> <span style="color:#e91e8c;font-weight:600">${fmt(c.total_spent)}</span></p>
+      </div>
+    </div>
+    <h6 class="fw-bold">Lịch sử đơn hàng</h6>
+    <div class="table-responsive">
+      <table class="table table-sm">
+        <thead><tr><th>Mã đơn</th><th>Sản phẩm</th><th>Tổng tiền</th><th>Trạng thái</th><th>Ngày đặt</th></tr></thead>
+        <tbody>
+          ${c.orders.length === 0 ? '<tr><td colspan="5" class="text-center text-muted py-3">Chưa có đơn hàng</td></tr>' : c.orders.map(o => `
+            <tr>
+              <td>#${o.id}</td>
+              <td>${o.item_count} sản phẩm</td>
+              <td>${fmt(o.total)}</td>
+              <td>${orderStatusLabel[o.status] || o.status}</td>
+              <td>${new Date(o.created_at).toLocaleDateString('vi-VN')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  new bootstrap.Modal(document.getElementById('customerModal')).show();
+}
+
+function openStatusChange(id, status) {
+  pendingStatus = { id, status };
+  const locking = status === 'locked';
+  document.getElementById('statusModalHeader').style.background = locking ? '#ef4444' : '#10b981';
+  document.getElementById('statusModalTitle').textContent = locking ? 'Khóa tài khoản' : 'Mở khóa tài khoản';
+  document.getElementById('statusModalBody').textContent = locking
+    ? 'Khách hàng này sẽ không thể đăng nhập cho đến khi được mở khóa. Bạn có chắc chắn?'
+    : 'Khách hàng này sẽ có thể đăng nhập trở lại. Bạn có chắc chắn?';
+  const btn = document.getElementById('statusConfirmBtn');
+  btn.className = 'btn ' + (locking ? 'btn-danger' : 'btn-success');
+  new bootstrap.Modal(document.getElementById('statusModal')).show();
+}
+
+async function confirmStatusChange() {
+  if (!pendingStatus) return;
+  await fetch(`/api/admin/customers/${pendingStatus.id}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: pendingStatus.status })
+  });
+  bootstrap.Modal.getInstance(document.getElementById('statusModal')).hide();
+  pendingStatus = null;
+  loadCustomers();
+}
+
+async function adminLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+}
+
+checkAdmin();
+loadCustomers();
+</script>
+</body>
+</html>

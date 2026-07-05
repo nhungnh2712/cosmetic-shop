@@ -51,7 +51,7 @@ app.post('/api/register', (req, res) => {
   const existing = db.get('users').find({ email }).value();
   if (existing) return res.json({ success: false, message: 'Email đã được sử dụng' });
   const hash = bcrypt.hashSync(password, 10);
-  const user = { id: nextId('users'), name, email, password: hash, role: 'user', created_at: new Date().toISOString() };
+  const user = { id: nextId('users'), name, email, password: hash, role: 'user', status: 'active', created_at: new Date().toISOString() };
   db.get('users').push(user).write();
   req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role };
   res.json({ success: true, user: req.session.user });
@@ -62,6 +62,9 @@ app.post('/api/login', (req, res) => {
   const user = db.get('users').find({ email }).value();
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return res.json({ success: false, message: 'Email hoặc mật khẩu không đúng' });
+  }
+  if (user.status === 'locked') {
+    return res.json({ success: false, message: 'Tài khoản của bạn đã bị khóa' });
   }
   req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role };
   res.json({ success: true, user: req.session.user });
@@ -255,6 +258,46 @@ app.get('/api/admin/orders', requireAdmin, (req, res) => {
 app.put('/api/admin/orders/:id/status', requireAdmin, (req, res) => {
   const { status } = req.body;
   db.get('orders').find({ id: parseInt(req.params.id) }).assign({ status }).write();
+  res.json({ success: true });
+});
+
+app.get('/api/admin/customers', requireAdmin, (req, res) => {
+  const orders = db.get('orders').value();
+  const customers = db.get('users').filter({ role: 'user' }).value().map(u => {
+    const userOrders = orders.filter(o => o.user_id === u.id);
+    const totalSpent = userOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+    return {
+      id: u.id, name: u.name, email: u.email,
+      status: u.status === 'locked' ? 'locked' : 'active',
+      created_at: u.created_at,
+      order_count: userOrders.length, total_spent: totalSpent
+    };
+  }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  res.json(customers);
+});
+
+app.get('/api/admin/customers/:id', requireAdmin, (req, res) => {
+  const id = parseInt(req.params.id);
+  const u = db.get('users').find({ id, role: 'user' }).value();
+  if (!u) return res.status(404).json({ error: 'Không tìm thấy' });
+  const orders = db.get('orders').filter({ user_id: id }).value()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .map(o => ({ ...o, item_count: db.get('order_items').filter({ order_id: o.id }).size().value() }));
+  const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.total, 0);
+  res.json({
+    id: u.id, name: u.name, email: u.email,
+    status: u.status === 'locked' ? 'locked' : 'active',
+    created_at: u.created_at, total_spent: totalSpent, orders
+  });
+});
+
+app.put('/api/admin/customers/:id/status', requireAdmin, (req, res) => {
+  const { status } = req.body;
+  if (!['active', 'locked'].includes(status)) return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+  const id = parseInt(req.params.id);
+  const u = db.get('users').find({ id, role: 'user' }).value();
+  if (!u) return res.status(404).json({ error: 'Không tìm thấy' });
+  db.get('users').find({ id }).assign({ status }).write();
   res.json({ success: true });
 });
 
